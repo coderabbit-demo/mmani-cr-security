@@ -1,5 +1,4 @@
 import { randomBytes, createCipheriv, timingSafeEqual } from 'node:crypto';
-import vm from 'node:vm';
 import { sign } from '../store.js';
 
 export function debugInsecure({ state }) {
@@ -9,7 +8,9 @@ export function debugSecure() { return { status: 'ok', service: 'Harbor Support'
 
 export function connectorInsecure({ input }) {
   const connector = { demoToken: 'DEMO-ONLY-CONNECTOR-KEY', invoiceCount: 2 };
-  return { result: vm.runInNewContext(input.code, { connector }, { timeout: 50 }), provenance: 'Source was not verified' };
+  const fields = { 'connector.demoToken': connector.demoToken, 'connector.invoiceCount': connector.invoiceCount };
+  if (!Object.hasOwn(fields, input.code)) return { denied: true, reason: 'Only the two teaching connector operations are supported.' };
+  return { result: fields[input.code], provenance: 'Connector artifact was accepted without a signature' };
 }
 export function connectorSecure({ input, state }) {
   const approvedSource = 'connector.invoiceCount';
@@ -42,7 +43,7 @@ export function searchSecure({ db, actor, input }) {
 }
 
 export function refundInsecure({ db, actor, state, input }) {
-  const invoice = db.prepare('SELECT * FROM invoices WHERE id = ? AND account_id = ?').get('INV-1001', actor.accountId);
+  const invoice = db.prepare('SELECT * FROM invoices WHERE account_id = ? ORDER BY id LIMIT 1').get(actor.accountId);
   if (!invoice) return { denied: true, reason: 'Invoice is not in your account.' };
   const payment = { id: randomBytes(4).toString('hex'), amount: Number(input.amount) };
   const previous = state.refunds.get('unsafe') || [];
@@ -50,7 +51,7 @@ export function refundInsecure({ db, actor, state, input }) {
   return { payments: previous, totalRefunded: previous.reduce((sum, p) => sum + p.amount, 0), invoiceAmount: invoice.amount };
 }
 export function refundSecure({ db, actor, state, input }) {
-  const invoice = db.prepare('SELECT * FROM invoices WHERE id = ? AND account_id = ?').get('INV-1001', actor.accountId);
+  const invoice = db.prepare('SELECT * FROM invoices WHERE account_id = ? ORDER BY id LIMIT 1').get(actor.accountId);
   if (!invoice) return { denied: true, reason: 'Invoice is not in your account.' };
   const amount = Number(input.amount);
   if (!Number.isSafeInteger(amount) || amount <= 0 || amount > invoice.amount) return { denied: true, reason: 'Refund must fit the paid invoice amount.' };

@@ -8,7 +8,7 @@ export const demoUsers = [
 
 export function createStore() {
   const db = new DatabaseSync(':memory:');
-  const state = { sessions: new Map(), key: randomBytes(32), resetTokens: new Map(), refunds: new Map(), events: [], outbox: [], resets: 0 };
+  const state = { sessions: new Map(), sessionAttempts: new Map(), key: randomBytes(32), resetTokens: new Map(), refunds: new Map(), events: [], outbox: [], resets: 0 };
   db.exec(`
     CREATE TABLE invoices (id TEXT PRIMARY KEY, account_id TEXT NOT NULL, customer TEXT, amount INTEGER, memo TEXT, bank_details TEXT, paid INTEGER DEFAULT 0);
     CREATE TABLE documents (id TEXT PRIMARY KEY, account_id TEXT NOT NULL, title TEXT, body TEXT);

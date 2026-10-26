@@ -49,6 +49,7 @@ test('safe health response contains no debug configuration', async () => {
 test('connector rejects unsigned code and accepts the approved signed artifact', async () => {
   assert.equal((await run('connector-update', 'insecure')).result, 'DEMO-ONLY-CONNECTOR-KEY');
   assert.equal((await run('connector-update', 'secure')).denied, true);
+  assert.equal((await run('connector-update', 'insecure', { code: 'connector.constructor.constructor("return process")()' })).denied, true);
   const code = 'connector.invoiceCount';
   assert.equal((await run('connector-update', 'secure', { code, signature: sign(store.state, code) })).result, 2);
 });
@@ -123,10 +124,35 @@ test('assistant refund limit is enforced outside the model adapter', async () =>
   assert.equal((await run('refund-agent', 'insecure')).refund.amount, 250000);
   assert.equal((await run('refund-agent', 'secure')).denied, true);
   assert.equal((await run('refund-agent', 'secure', { amount: 5000 })).refund.source, 'server_policy');
+  assert.equal((await run('refund-agent', 'secure', { amount: 5000 })).denied, true);
 });
 test('private document retrieval is scoped to the session account', async () => {
   assert.equal((await run('document-retrieval', 'insecure')).documents[0].account_id, 'maple');
   assert.equal((await run('document-retrieval', 'secure')).documents.length, 0);
   assert.equal((await run('document-retrieval', 'secure', { query: 'renewal' })).documents.length, 0);
   assert.equal((await run('document-retrieval', 'secure', { query: 'renew' })).documents[0].account_id, 'cedar');
+});
+test('outbox history stays inside its account across both prompt variants', async () => {
+  await run('refund-agent', 'secure', { amount: 1000 });
+  const { response } = await call('/api/session', demoUsers[1], '');
+  const mapleCookie = response.headers.get('set-cookie').split(';')[0];
+  for (const variant of ['secure', 'insecure']) {
+    const { data } = await call(`/api/labs/ticket-injection/${variant}`, { ticket: 'Please help.' }, mapleCookie);
+    assert.deepEqual(data.data.outbox, []);
+  }
+  const refund = await call('/api/labs/refund-retry/secure', { amount: 125000, requestKey: 'maple-refund' }, mapleCookie);
+  assert.equal(refund.data.data.payment.amount, 125000);
+});
+test('unknown API routes return JSON and malformed model requests return input errors', async () => {
+  assert.equal((await call('/api/no-such-route')).response.status, 404);
+  assert.equal((await call('/api/labs/ticket-injection/secure', { ticket: '<tool>invalid json</tool>' })).response.status, 400);
+});
+test('session attempts are bounded and expired sessions are removed', async () => {
+  const { response } = await call('/api/session', demoUsers[1], '');
+  const token = response.headers.get('set-cookie').split(';')[0];
+  store.state.sessions.get(token.split('=')[1]).expires = Date.now() - 1;
+  assert.equal((await call('/api/me', undefined, token)).response.status, 401);
+  assert.equal(store.state.sessions.has(token.split('=')[1]), false);
+  store.state.sessionAttempts.set('127.0.0.1', { count: 20, until: Date.now() + 60000 });
+  assert.equal((await call('/api/session', demoUsers[1], '')).response.status, 429);
 });

@@ -1,15 +1,15 @@
 import sanitizeHtml from 'sanitize-html';
 import { draftFromTicket, planRefund, generatedReply } from '../ai/model-adapter.js';
 
-export function promptInsecure({ input, state }) {
+export function promptInsecure({ input, state, actor }) {
   const tool = draftFromTicket(input.ticket);
-  if (tool.name === 'send_transcript') state.outbox.push({ destination: tool.destination, transcript: 'Synthetic customer support transcript: invoice renewal details.' });
-  return { modelRequest: tool, outbox: state.outbox, note: 'Outbox delivery is local. No network request is sent.' };
+  if (tool.name === 'send_transcript') state.outbox.push({ account: actor.accountId, destination: tool.destination, transcript: 'Synthetic customer support transcript: invoice renewal details.' });
+  return { modelRequest: tool, outbox: state.outbox.filter(entry => entry.account === actor.accountId), note: 'Outbox delivery is local. No network request is sent.' };
 }
-export function promptSecure({ input, state }) {
+export function promptSecure({ input, state, actor }) {
   const tool = draftFromTicket(input.ticket);
   if (tool.name !== 'reply' || tool.destination !== 'customer') return { denied: true, reason: 'Ticket text cannot grant a new tool or destination.', rejectedRequest: tool };
-  return { message: tool.message, outbox: state.outbox };
+  return { message: tool.message, outbox: state.outbox.filter(entry => entry.account === actor.accountId) };
 }
 
 export function disclosureInsecure({ db, actor, state }) {
@@ -37,7 +37,8 @@ export function agencyInsecure({ actor, input, state }) {
 }
 export function agencySecure({ actor, input, state }) {
   const tool = planRefund(input.amount);
-  if (!Number.isSafeInteger(tool.amount) || tool.amount <= 0 || tool.amount > 5000) return { denied: true, reason: 'The assistant can refund at most $50. Larger refunds require a separate authorized approval.' };
+  const issued = state.outbox.filter(entry => entry.source === 'server_policy' && entry.account === actor.accountId).reduce((sum, entry) => sum + entry.amount, 0);
+  if (!Number.isSafeInteger(tool.amount) || tool.amount <= 0 || issued + tool.amount > 5000) return { denied: true, reason: 'The assistant can refund at most $50 in total. Larger refunds require a separate authorized approval.' };
   const refund = { account: actor.accountId, amount: tool.amount, approved: true, source: 'server_policy' };
   state.outbox.push(refund);
   return { refund };
