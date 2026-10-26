@@ -1,0 +1,77 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# Public review configuration for the local security demonstration.
+# Verified against the published schema on 2026-10-26.
+# Deep Scan controls and the native Security check use separate app settings.
+
+language: en-US
+tone_instructions: >-
+  Use short sentences and plain words. Explain the input, missing control,
+  effect, and fix. Define a technical term when first used.
+
+reviews:
+  profile: assertive
+  high_level_summary: true
+  review_status: true
+  sequence_diagrams: true
+  poem: false
+  enable_prompt_for_ai_agents: true
+  assess_linked_issues: true
+  related_issues: true
+
+  pre_merge_checks:
+    issue_assessment:
+      mode: warning
+
+  auto_review:
+    enabled: true
+    drafts: true
+    auto_incremental_review: true
+    auto_pause_after_reviewed_commits: 0
+
+  path_filters:
+    - "!**/node_modules/**"
+    - "!**/dist/**"
+    - "!**/coverage/**"
+    - "!recordings/**"
+
+  path_instructions:
+    - path: "**"
+      instructions: >-
+        Assess reachable application code in both insecure and secure variants.
+        Educational labels alone do not establish a security exception. Trace
+        attacker-controlled input through existing controls to a sensitive
+        operation. Check account and object authorization, authentication,
+        SQL injection, debug exposure, cryptography, connector provenance,
+        refund limits and retries, webhook authenticity, security alerts,
+        and errors that allow access. Inspect AI context disclosure, prompt
+        injection, output rendering, tool authority, and retrieval isolation.
+        Confirm counterevidence and describe deployment limits. Report only
+        supported issues. Include the affected path, practical impact, specific
+        fix, and a focused validation step. Use a CWE only when supported.
+        Do not infer safety from a directory name or an expected result.
+    - path: "**/*invoice*.*"
+      instructions: >-
+        Trace invoice access from HTTP handlers, assistant tools, exports, and
+        background jobs into shared services and storage. Verify that the
+        authenticated account is bound to every invoice read or write. A caller
+        must not choose its authority through a request field, model output,
+        or guessed invoice ID. Inspect shared callers before proposing a fix.
+        Check that the fix covers each reachable consumer and denies access
+        when identity or policy evaluation is missing. Distinguish this source
+        defect from separate AI retrieval and prompt-handling defects.
+
+  tools:
+    semgrep:
+      enabled: true
+    gitleaks:
+      enabled: true
+    osvScanner:
+      enabled: true
+    checkov:
+      enabled: true
+
+knowledge_base:
+  learnings:
+    scope: local
+  issues:
+    scope: local

@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.env
+.DS_Store
+coverage/
+recordings/
+output/
+tmp/
+evidence/raw/
