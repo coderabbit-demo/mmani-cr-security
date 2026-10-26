@@ -27,7 +27,7 @@ export function createStore() {
     const doc = db.prepare('INSERT INTO documents VALUES (?, ?, ?, ?)');
     doc.run('DOC-C1', 'cedar', 'Cedar renewal notes', 'Cedar support contract renews in December.');
     doc.run('DOC-M2', 'maple', 'Maple private acquisition', 'Maple confidential project: Project Lighthouse. Budget: demo $250,000.');
-    state.resetTokens.clear(); state.refunds.clear(); state.events.length = 0; state.outbox.length = 0; state.resets++;
+    state.resetTokens.clear(); state.refunds.clear(); state.sessionAttempts.clear(); state.events.length = 0; state.outbox.length = 0; state.resets++;
   }
   reset();
   return { db, state, reset, close: () => db.close() };

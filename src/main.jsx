@@ -28,27 +28,30 @@ function App() {
   const [toast, setToast] = useState('');
   const [present, setPresent] = useState(false);
   const requestEpoch = useRef(0);
+  const operationId = useRef(0);
 
   async function signIn(account) {
+    const operation = ++operationId.current;
     requestEpoch.current++;
     setBusy('session'); setError('');
     try {
       const session = await request('/api/session', accounts[account]);
       const data = await request('/api/catalog');
       setActor(session.actor); setLessons(data.lessons); setResults({});
-    } catch (e) { setError(e.message); } finally { setBusy(''); }
+    } catch (e) { if (operation === operationId.current) setError(e.message); } finally { if (operation === operationId.current) setBusy(''); }
   }
   useEffect(() => { signIn('cedar'); }, []);
   const lesson = lessons.find(item => item.id === selected) || lessons[0];
-  useEffect(() => { requestEpoch.current++; if (lesson) { setForm(lesson.defaults); setResults({}); setError(''); location.hash = lesson.id; } }, [lesson?.id, actor?.accountId]);
+  useEffect(() => { requestEpoch.current++; if (busy !== 'session') { operationId.current++; setBusy(''); } if (lesson) { setForm(lesson.defaults); setResults({}); setError(''); location.hash = lesson.id; } }, [lesson?.id, actor?.accountId]);
   useEffect(() => { document.documentElement.classList.toggle('presentation', present); }, [present]);
   useEffect(() => { if (toast) { const timer = setTimeout(() => setToast(''), 2600); return () => clearTimeout(timer); } }, [toast]);
 
   async function run(variant) {
+    const operation = ++operationId.current;
     const epoch = requestEpoch.current;
     setBusy(variant); setError('');
     try { const result = await request(`/api/labs/${lesson.id}/${variant}`, form); if (epoch === requestEpoch.current) setResults(previous => ({ ...previous, [variant]: result })); }
-    catch (e) { if (epoch === requestEpoch.current) setError(e.message); } finally { setBusy(''); }
+    catch (e) { if (epoch === requestEpoch.current) setError(e.message); } finally { if (operation === operationId.current) setBusy(''); }
   }
   async function reset() {
     try { await request('/api/reset', {}); setResults({}); setToast('Demo data reset. Both accounts are ready.'); }
