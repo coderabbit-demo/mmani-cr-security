@@ -37,3 +37,5 @@ The baseline shared invoice service checks account ownership. The focused demons
 See [the implementation plan](docs/implementation.md). Configure private integration destinations in the review service, outside this public repository.
 
 See the [incident script](docs/demo-flow.md) for the five-act story, matching CLI/PR/scan evidence, verified ending, and presenter appendices. Replay tags: `demo-baseline`, `demo-vulnerable`, and `demo-remediated`.
+
+For a live CLI replay, follow the [CLI setup appendix](docs/demo-flow.md#presenter-appendix--set-up-and-repeat-the-cli-review). It prepares the vulnerable lookup as an uncommitted change on `demo/cli-invoice-replay` and gives the exact review and reset commands.
