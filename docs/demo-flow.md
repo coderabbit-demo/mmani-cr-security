@@ -45,6 +45,10 @@ Restart the server after backend changes. The in-memory database resets on resta
 
 The CLI run contained two findings. A reproducer-control issue was corrected before `c04f5df`; the invoice source defect remained for PR review and Deep Scan. Do not describe the retained output as a new live CLI execution.
 
+The PR agent created and verified [Bug CRDEMO-12](https://coderabbit-demo.atlassian.net/browse/CRDEMO-12), and returned the link in [PR #3](https://github.com/coderabbit-demo/mmani-cr-security/pull/3#issuecomment-6431943119). An independent Jira read confirmed its key, title, Open status, and content. The ticket explicitly records that the repair has already merged; it was not closed automatically.
+
+The repaired [Deep Scan 90e0cd48](https://app.coderabbit.ai/deep-scans/90e0cd48-3430-4da1-a84f-ce31292fd0e8) also completed. Its data-flow map describes the shared invoice query as account-scoped across the API, assistant, export, and lesson callers. The original IDOR is Fixed. Other teaching and hardening findings remain; this is not a clean-repository claim.
+
 ## Local runtime verification
 
 The account had no hosted Agent minutes and usage billing was off. The approved recording uses local execution evidence. A source recheck, a generated guide, and an executed runtime test are different kinds of evidence.
@@ -73,7 +77,9 @@ Both runs first require Maple's own-account request to succeed through every rou
 
 The checked-in [`.coderabbit.yaml`](../.coderabbit.yaml) was validated against the published schema on 26 October 2026. It enables assertive reviews, draft and incremental reviews, linked-issue assessment, and supported security tools. Path instructions ask for reachable paths, existing controls, counterevidence, supported CWEs, and focused validation. The invoice instructions require review of all shared consumers.
 
-Jira chat issue creation is explicitly enabled for this public repository. Chat interaction is restricted to organization members. A structured issue template requests the finding, impact, PR revision, reproduction, remediation, and acceptance criteria. The approved write connection and project context restrictions are configured privately in the product.
+The YAML requests Jira chat issue creation for this public repository. The product Chat setting was also saved as Enabled, and the PR agent subsequently created and verified CRDEMO-12. Chat interaction is restricted to organization members. A structured issue template requests the finding, impact, PR revision, reproduction, remediation, and acceptance criteria.
+
+The demo uses an explicitly approved private connection in a scope containing only this repository, with unrelated inherited connections removed. Its Jira credentials include broader write and webhook-management permissions. The project context filter narrows review context; it does not restrict the credentials' write authority. The operator approved this broader connection for the named demo repository before it was attached. This is a demo exception, not an assertion that the connection is limited to creating issues in one project. A production setup should use credentials restricted to the required project and operations. No per-action approval mechanism is claimed by this runbook.
 
 Native Security check thresholds, GitHub branch protection, Deep Scan targets, runtime settings, and private Jira connections are separate product settings. YAML alone does not enable those features. Keep private integration destinations and credentials outside this public repository.
 
