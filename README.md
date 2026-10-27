@@ -2,7 +2,7 @@
 
 A local customer support and billing website for demonstrating CodeRabbit Security. Fifteen lessons compare insecure and secure implementations against OWASP Web 2025 and selected OWASP LLM 2025 risks.
 
-The main story follows cross-account invoice access through CLI review, pull request review, Jira ticket creation, Deep Scan, runtime verification, and remediation.
+The main story starts with a Cedar user asking for Maple's invoice. The CLI flags a missing ownership check. PR review and the full repository scan find the same defect. Executed requests prove the exposure, then one shared repair protects the invoice API, assistant, and export. [Follow the incident and its evidence](docs/demo-flow.md).
 
 ## Local use
 
@@ -36,4 +36,4 @@ The baseline shared invoice service checks account ownership. The focused demons
 
 See [the implementation plan](docs/implementation.md). Configure private integration destinations in the review service, outside this public repository.
 
-See the [Do / Say / See demo flow](docs/demo-flow.md) for the review story, actual evidence links, local runtime commands, scenario catalog, and recording checklist. Replay tags: `demo-baseline`, `demo-vulnerable`, and `demo-remediated`.
+See the [incident script](docs/demo-flow.md) for the five-act story, matching CLI/PR/scan evidence, verified ending, and presenter appendices. Replay tags: `demo-baseline`, `demo-vulnerable`, and `demo-remediated`.
