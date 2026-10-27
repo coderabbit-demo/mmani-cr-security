@@ -3,7 +3,7 @@ import { randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
 import { createStore, demoUsers } from './store.js';
 import { catalog, publicCatalog } from './catalog.js';
-import { getInvoice, getSecureInvoice } from './services/invoice-service.js';
+import { getInvoice } from './services/invoice-service.js';
 const deriveKey = promisify(scrypt);
 
 export function createApp(store = createStore()) {
@@ -77,11 +77,11 @@ export function createApp(store = createStore()) {
     const input = { ...lesson.defaults, ...req.body };
     let data;
     if (lesson.id === 'invoice-access') {
-      const fn = secure ? getSecureInvoice : getInvoice;
+      const fn = lesson.handlers[secure ? 1 : 0];
       const invoice = fn(store.db, req.actor, String(input.invoiceId));
-      data = invoice ? { invoice, accessedFromAccount: req.actor.accountId } : { denied: true, reason: 'This invoice belongs to another account. Access was denied.' };
+      data = invoice ? { invoice, accessedFromAccount: req.actor.accountId } : { denied: true, reason: 'Invoice not found in this account.' };
     } else data = await lesson.handlers[secure ? 1 : 0]({ ...store, actor: req.actor, input });
-    res.json({ variant: req.params.variant, lesson: lesson.id, data, file: lesson.file, function: lesson.handlers[secure ? 1 : 0].name, observedAt: new Date().toISOString() });
+    res.json({ variant: req.params.variant, lesson: lesson.id, data, file: lesson.files[secure ? 1 : 0], function: lesson.handlers[secure ? 1 : 0].name, observedAt: new Date().toISOString() });
   });
   app.use('/api', (req, res) => res.status(404).json({ error: 'API route not found.' }));
   app.use((err, req, res, next) => {
