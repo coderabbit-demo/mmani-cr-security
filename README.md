@@ -32,7 +32,9 @@ Run `npm test` for API and security-control integration tests. Run `npm run buil
 
 ## Demo revisions
 
-The baseline shared invoice service checks account ownership. The focused demonstration PR removes that check, then restores it after review and verification. Use the vulnerable replay tag when demonstrating the insecure invoice request. Use the remediation revision to demonstrate a verified fix. Other paired lessons remain available throughout.
+The baseline shared invoice service checks account ownership. The focused demonstration PR removes that check, then restores it after review and verification. Use the vulnerable replay tag when demonstrating exposure through the invoice API, assistant, and export. Use the remediation revision to demonstrate a verified fix.
+
+The website's invoice comparison has a separate, deliberately insecure teaching function in `server/labs/invoice.js`. It remains available after the shared service is repaired. As Cedar, request Maple's `INV-2002`: the insecure lesson returns Maple's invoice; the secure lesson denies access. Both versions can return an invoice owned by the signed-in account. The source panel identifies the function and file actually used by each lesson button. Other paired lessons also remain available throughout.
 
 See [the implementation plan](docs/implementation.md). Configure private integration destinations in the review service, outside this public repository.
 

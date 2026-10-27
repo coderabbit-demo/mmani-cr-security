@@ -42,6 +42,39 @@ test('baseline invoice access protects all consumers and ignores caller account 
   assert.equal((await call('/api/exports/invoices/INV-2002')).response.status, 404);
   assert.equal((await run('invoice-access', 'secure', { invoiceId: 'INV-2002', accountId: 'maple' })).denied, true);
 });
+test('invoice lesson keeps a real insecure comparison after the shared service is repaired', async () => {
+  const { data: catalog } = await call('/api/catalog');
+  const lesson = catalog.lessons.find(item => item.id === 'invoice-access');
+  assert.deepEqual(lesson.files, ['server/labs/invoice.js', 'server/services/invoice-service.js']);
+  for (const [user, ownId, otherId, otherAccount] of [
+    [demoUsers[0], 'INV-1001', 'INV-2002', 'maple'],
+    [demoUsers[1], 'INV-2002', 'INV-1001', 'cedar'],
+  ]) {
+    const { response } = await call('/api/session', user, '');
+    const auth = response.headers.get('set-cookie').split(';')[0];
+    const insecure = (await call('/api/labs/invoice-access/insecure', { invoiceId: otherId }, auth)).data;
+    assert.equal(insecure.data.invoice.account_id, otherAccount);
+    assert.notEqual(insecure.data.invoice.account_id, insecure.data.accessedFromAccount);
+    assert.equal(insecure.file, lesson.files[0]);
+    assert.ok(lesson.code[0].startsWith(`function ${insecure.function}(`));
+    const secure = (await call('/api/labs/invoice-access/secure', { invoiceId: otherId, accountId: otherAccount }, auth)).data;
+    assert.equal(secure.data.denied, true);
+    assert.equal(secure.data.invoice, undefined);
+    assert.equal(secure.file, lesson.files[1]);
+    assert.ok(lesson.code[1].startsWith(`function ${secure.function}(`));
+    for (const variant of ['insecure', 'secure']) {
+      const own = (await call(`/api/labs/invoice-access/${variant}`, { invoiceId: ownId }, auth)).data;
+      assert.equal(own.data.invoice.id, ownId);
+      const missing = (await call(`/api/labs/invoice-access/${variant}`, { invoiceId: 'INV-MISSING' }, auth)).data;
+      assert.equal(missing.data.denied, true);
+    }
+    for (const [route, body] of [
+      [`/api/invoices/${ownId}`],
+      ['/api/assistant/invoice', { invoiceId: ownId }],
+      [`/api/exports/invoices/${ownId}`],
+    ]) assert.equal((await call(route, body, auth)).response.status, 200);
+  }
+});
 test('safe health response contains no debug configuration', async () => {
   assert.ok((await run('debug-exposure', 'insecure')).config.connectorKey);
   assert.deepEqual(await run('debug-exposure', 'secure'), { status: 'ok', service: 'Harbor Support' });
