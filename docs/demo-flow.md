@@ -73,6 +73,8 @@ Both runs first require Maple's own-account request to succeed through every rou
 
 The checked-in [`.coderabbit.yaml`](../.coderabbit.yaml) was validated against the published schema on 26 October 2026. It enables assertive reviews, draft and incremental reviews, linked-issue assessment, and supported security tools. Path instructions ask for reachable paths, existing controls, counterevidence, supported CWEs, and focused validation. The invoice instructions require review of all shared consumers.
 
+Jira chat issue creation is explicitly enabled for this public repository. Chat interaction is restricted to organization members. A structured issue template requests the finding, impact, PR revision, reproduction, remediation, and acceptance criteria. The approved write connection and project context restrictions are configured privately in the product.
+
 Native Security check thresholds, GitHub branch protection, Deep Scan targets, runtime settings, and private Jira connections are separate product settings. YAML alone does not enable those features. Keep private integration destinations and credentials outside this public repository.
 
 ## Fifteen executable lessons
