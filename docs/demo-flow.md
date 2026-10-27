@@ -10,25 +10,27 @@ This is a replay of a completed demonstration using real retained review results
 
 | Observation | What identifies the same defect | Actual result | Evidence |
 | --- | --- | --- | --- |
-| CLI, before commit | `server/services/invoice-service.js:4–5`; `getInvoice` accepts an invoice ID without an account filter; API, assistant, and export can return Maple's invoice to Cedar | Major; completed review with two findings | [Retained CLI review](review-evidence/invoice-cli-review.jsonl); exact finding title: “Use `getSecureInvoice` for the normal invoice routes.” |
+| CLI, presenter replay before commit | `server/services/invoice-service.js:4–5`; `getInvoice` accepts an invoice ID without an account filter; API, assistant, and export can return another account's invoice | Major; IDOR; CWE-639; one finding, one file reviewed | [Actual terminal capture](review-evidence/cli-invoice-terminal.png); finding: “Scope `getInvoice` by account.” [Transcribed excerpt](review-evidence/cli-invoice-output.txt) |
 | PR #2, vulnerable `c04f5df` | Same file, lines, missing filter, wrong-account request, and three callers | Major; IDOR; CWE-639 | [Exact PR finding](https://github.com/coderabbit-demo/mmani-cr-security/pull/2#discussion_r4383413143) |
 | Full repository scan `70d07745` | Same source at `c04f5df`; same missing ownership check; same three callers, plus the insecure lesson | Medium; IDOR; CWE-639 | [Exact Deep Scan finding](https://app.coderabbit.ai/security/repositories?owner=coderabbit-demo&repo=coderabbit-demo%2Fmmani-cr-security&tab=code&scanId=70d07745-88af-4e9e-be83-15ac3c916af8&orgId=3f6ae291-41c4-48f8-bb79-8add1989d23a&findingId=2afb5613-26bc-42d1-a2d1-8791b506b214) |
 
-These are three observations of one code defect. They have different review records and severity labels. Do not imply a common finding ID or that the CLI itself reported CWE-639.
+These are three observations of one code defect. They have different review records and severity labels. Do not imply a common finding ID. The presenter's actual CLI capture explicitly reports CWE-639, matching the PR and repository scan.
 
 ## Act 1 — The developer spots the missing rule
 
-**Open with the CLI, not a menu of security features.** Show the command and its retained result:
+**Open with the CLI, not a menu of security features.** Show the presenter's actual terminal capture, including the command, source path, security classification, suggested repair, and completed result:
 
 ```sh
-coderabbit review --uncommitted --fresh --deep --agent
+coderabbit review --uncommitted --fresh --deep
 ```
 
 Say: “Cedar is signed in. The code still has to check that the requested invoice belongs to Cedar. The CLI catches the missing account check before this change is committed.”
 
 Point to the Major finding at `invoice-service.js:4–5`. Read the concrete consequence: a Cedar user can request `INV-2002` and receive Maple's invoice. Then point out the three callers. The assistant is affected because it calls this same service; it does not need a separate model exploit.
 
-The CLI review completed with two findings. Its other finding exposed a flaw in the reproducer: unrelated 404 responses could count as a successful denial. We fixed that control before committing `c04f5df`. We retained the invoice defect for the demonstration. The film labels the CLI result as saved evidence; it does not claim to show a fresh invocation.
+The presenter's CLI 0.9.1 replay compares `demo/cli-invoice-replay` with `main` and reviews the uncommitted invoice lookup change. It completed with **one Major finding in one file**. Its title is “Scope `getInvoice` by account.” The result explicitly names IDOR (CWE-639), External reachability, and Moderate exploitability. The original terminal PNG is preserved unchanged. The recording presents that capture, with no simulated terminal or reformatted finding viewer.
+
+An earlier agent-output review is retained separately in the [historical JSONL](review-evidence/invoice-cli-review.jsonl). It had two findings, including the reproducer-control issue that was corrected before `c04f5df`. It is not the CLI result shown in the revised demonstration.
 
 **Transition:** “Does the same flaw remain visible when this change reaches the team?”
 
@@ -60,7 +62,7 @@ The original scan reported ten findings: three Medium and seven Low. We stay wit
 
 ## Act 4 — Prove the impact, then restore one shared rule
 
-Use local execution against `demo-vulnerable`. Hosted Runtime Analysis was unavailable because the account had no Agent minutes and usage billing was off. Local reproduction was explicitly approved. Show the distinction on screen.
+Use local execution against `demo-vulnerable` for the invoice proof below. A separate hosted AI document-retrieval run completed on October 27 with an Inconclusive assessment. See the hosted runtime appendix; keep the two results distinct.
 
 ```sh
 node scripts/reproduce-invoice.js --expect-vulnerable
@@ -136,7 +138,63 @@ Use these replay tags in a separate checkout, or stop the server before switchin
 | `demo-vulnerable` / `c04f5df` | Shared invoice query omits the account predicate. |
 | `demo-remediated` / `34872a2` | Merged repair and stronger reproduction controls. Repair commit: `1844ccf`. |
 
-Restart the server after backend changes. The in-memory database resets on restart. Build the UI after switching a tag. The vulnerable tag is needed to show the invoice lesson's insecure result; the repaired shared service also protects that lesson caller.
+Restart the server after backend changes. The in-memory database resets on restart. Build the UI after switching a tag. Use the vulnerable tag for the before result through the invoice API, assistant, and export. The website lesson wiring differs by revision; its running-source panel identifies the actual implementation.
+
+## Presenter appendix — Set up and repeat the CLI review
+
+Use the installed CodeRabbit CLI 0.9.1. Select the organization that owns the demo repository:
+
+```sh
+coderabbit --version
+coderabbit auth org
+```
+
+Choose **coderabbit-demo**. Use `coderabbit auth status` to confirm the active organization. If the CLI is not signed in, complete `coderabbit auth login` first.
+
+Run these commands from the repository root. Check `git status --short` first; stop if it lists changes and preserve that work before continuing. Create a fresh replay branch from the repaired `main`, then restore only the vulnerable invoice lookup as an **uncommitted change**:
+
+```sh
+git status --short
+
+git switch -c demo/cli-invoice-replay main
+
+git restore --source=demo-vulnerable --worktree -- server/services/invoice-service.js
+
+git diff -- server/services/invoice-service.js
+```
+
+If `demo/cli-invoice-replay` already exists, create a fresh branch name from `main`, such as `git switch -c demo/cli-invoice-replay-2 main`. Restore the file from `demo-vulnerable` each time you need to repeat the vulnerable review. The older `demo/invoice-scope-regression` branch already contains the repair and is not a fresh before-review setup.
+
+The diff must remove `AND account_id = ?` and the `actor.accountId` argument from `getInvoice`, while the separate `getSecureInvoice` comparison remains scoped. Leave this change uncommitted, then run the human-readable command used in the actual terminal capture:
+
+```sh
+coderabbit review --uncommitted --fresh --deep
+```
+
+For the structured agent output used in the earlier run, add `--agent`:
+
+```sh
+coderabbit review --uncommitted --fresh --deep --agent
+```
+
+The completed presenter run reported **one Major IDOR (CWE-639)** at `server/services/invoice-service.js:4–5`, titled “Scope `getInvoice` by account.” The affected paths are the invoice API, assistant invoice tool, and export. New review wording can vary. The website does not need to be running for this CLI review.
+
+After the demonstration, restore the fixed file and return to `main`. These commands assume the replay change was left uncommitted:
+
+```sh
+git restore --source=main --worktree -- server/services/invoice-service.js
+git switch main
+```
+
+## Presenter appendix — Hosted Runtime Verification follow-up
+
+The invoice story demonstrates one account-ownership rule. Apply that same rule to the separate AI document-retrieval finding at `server/labs/ai.js:48`: Cedar must not receive Maple documents. This is a separate finding, not the repaired invoice issue.
+
+Open the finding's Runtime verification tab. Inspect the published guide, select **Web-Dev-MMANI**, and choose **Run**. The regenerated guide imports the real retrieval handlers, supplies a Cedar actor, and prints insecure and secure results.
+
+The fresh hosted run on October 27 completed against **main [f121d41]** with **2 of 2 steps completed** and **0.89 QA minutes**. Application ready was **Confirmed**. The assessment was **Inconclusive**, and Target exercised was **Not established**. The retained output lists Maple document `DOC-M2` and `secure documents: []`, but the fixture body is redacted in the retained command. CodeRabbit therefore could not establish the actor identity, real handler invocation, and secure control from that evidence. The finding remains **Open**. Do not present this as a verified reproduction.
+
+Read the [hosted runtime evidence and limitation](review-evidence/runtime-verification.md). The runtime workflow is recorded as a follow-up to the invoice incident, with shortened waits and the actual Inconclusive outcome.
 
 ## Presenter appendix — Review configuration
 
