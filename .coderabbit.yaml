@@ -8,6 +8,19 @@ tone_instructions: >-
   Use short sentences and plain words. Explain the input, missing control,
   effect, and fix. Define a technical term when first used.
 
+chat:
+  allow_non_org_members: false
+  integrations:
+    jira:
+      usage: enabled
+      issue_template: |-
+        ## Goal
+        ## Security finding and impact
+        ## Pull request and reviewed revision
+        ## Reproduction steps
+        ## Recommended remediation
+        ## Acceptance criteria
+
 reviews:
   profile: assertive
   high_level_summary: true

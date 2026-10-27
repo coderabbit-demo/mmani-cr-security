@@ -35,3 +35,5 @@ Run `npm test` for API and security-control integration tests. Run `npm run buil
 The baseline shared invoice service checks account ownership. The focused demonstration PR removes that check, then restores it after review and verification. Use the vulnerable replay tag when demonstrating the insecure invoice request. Use the remediation revision to demonstrate a verified fix. Other paired lessons remain available throughout.
 
 See [the implementation plan](docs/implementation.md). Configure private integration destinations in the review service, outside this public repository.
+
+See the [Do / Say / See demo flow](docs/demo-flow.md) for the review story, actual evidence links, local runtime commands, scenario catalog, and recording checklist. Replay tags: `demo-baseline`, `demo-vulnerable`, and `demo-remediated`.
